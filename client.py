@@ -16,6 +16,8 @@ ken(.):$ info .             Information of current directory (How many files? To
 ken(.):$ info "root/abc"            info of given dir or file
 ken(.):$ put src_file_path dest_path          Uploads file in given path in host's machine to dfs.
 ken(.):$ get src_file_path dest_path          Downloads a file in dfs to host's machine.
+ken(.):$ copy src_path dest_path
+ken(.):$ move src_path dest_path
 
 '''
 
@@ -98,8 +100,10 @@ def main():
 
                 elif args[0]=="remove":
                     # remove dir args[1]
-                    pass
-
+                    if ns.get(args[1]) is None:
+                        print('Invalid path name: some dirs do not exist in given path.')
+                    else:
+                        ns.remove(args[1])
                 else:
                     print("Invalid command. Try 'help' command to learn usage.")
 
@@ -110,6 +114,12 @@ def main():
                 elif args[0]=="get":
                     # do download task here
                     pass
+                elif args[0]=="copy":
+                    # do download task here
+                    ns.copy(args[1], args[2])
+                elif args[0]=="move":
+                    # do download task here
+                    ns.move(args[1], args[2])
                 else:
                     print("Invalid command. Try 'help' command to learn usage.")
                 
@@ -120,6 +130,11 @@ def main():
                         is_file = True if args[1]=="-f" else False
 
                         # create file/dir inside of dir given by arg[2], arg[3] is the name of file/dir
+                        if is_file:
+                            ns.add_file(args[2] + args[3], [])
+                        else:
+                            ns.add_dir(args[2] + args[3])
+
                         # cd to arg[2] after done.
 
                     else:
