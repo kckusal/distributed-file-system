@@ -37,10 +37,12 @@ class NameServerService(rpyc.Service):
     def exposed_copy(self, src_path, dest_path):
         # if dir, just copy object structure, if files, copy that shit too. (if copy in same dir, add with _copy1)
         pass
+        self.exposed_save()
 
     def exposed_move(self, src_path, dest_path):
         # just modify the obj
         pass
+        self.exposed_save()
 
     def exposed_upload(self, path, file):
         # add an entry by calling add_file in the structure
