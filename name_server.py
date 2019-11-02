@@ -17,6 +17,8 @@ from functools import reduce
 from operator import getitem
 import rpyc
 
+import uuid
+
 REPILCATION_FACTOR = 2
 SERVERS = {
     "name": ['127.0.0.1:18861'],
@@ -33,6 +35,8 @@ class NameServerService(rpyc.Service):
         print('Disconnected from host: ')
 
     data = {}
+    SPLIT_THRESHOLD = 1200000   # split if file size larger than this
+    SPLIT_BLOCK_SIZE = 500000   # Each block will have a maximum size of this bytes
 
     def exposed_copy(self, src_path, dest_path):
         # if dir, just copy object structure, if files, copy that shit too. (if copy in same dir, add with _copy1)
@@ -62,6 +66,7 @@ class NameServerService(rpyc.Service):
             "root": {}
         }
         self.exposed_save()
+        return 'DFS initialized.'
 
     def exposed_refresh(self):
         with open("ken_dir_mapper.txt", 'r') as input_file:
@@ -158,7 +163,20 @@ class NameServerService(rpyc.Service):
             return "\t".join(x for x in inst.keys())
         except (KeyError,TypeError):
             return 'Invalid path name: some dirs do not exist in given path.'
-        
+    
+    # Split given file and returns the block object with ID and data
+    def split_file(self, f):
+        blocks = []
+        with open(f, 'rb') as file:
+            bytes = f.read(self.SPLIT_BLOCK_SIZE)
+            while bytes:
+                blocks.append({
+                    'id': uuid.uuid1(),
+                    'data': bytes
+                })
+                bytes = f.read(self.SPLIT_BLOCK_SIZE)
+        return blocks
+
 
     def exposed_save(self):
         with open("ken_dir_mapper.txt", "w") as output_file:
