@@ -79,7 +79,8 @@ def main():
                     main()
                     break
                 elif arg=="initialize":
-                    ns.initialize()    # initialize dfs here
+                    print(ns.initialize())    # initialize dfs here
+                    current = "root"
                 elif arg=="ls":
                     #conn.get(current)      get all attributes in current directory
                     print(ns.ls(current))
@@ -89,10 +90,18 @@ def main():
             elif len(args)==2:
                 if args[0]=="cd":
                     # get current dir from structure, if curr exists then make current = args[1], else print error
-                    if ns.get(args[1]) is None:
-                        print('Invalid path name: some dirs do not exist in given path.')
+                    if args[1]=="..":
+                        if current=='root':
+                            print('Already on root!')
+                        else:
+                            current = current.rsplit("/", 1)[0]
                     else:
-                        current = args[1]
+                        path = args[1]
+                        if path[:4]!='root': path = current + "/" + path
+                        if ns.get(path) is None:
+                            print('Invalid path name: some dirs do not exist in given path.')
+                        else:
+                            current = path
 
                 elif args[0]=="info":
                     # get info of dir args[1]
@@ -131,9 +140,9 @@ def main():
 
                         # create file/dir inside of dir given by arg[2], arg[3] is the name of file/dir
                         if is_file:
-                            ns.add_file(args[2] + args[3], [])
+                            ns.add_file(args[2] + '/' + args[3], [])
                         else:
-                            ns.add_dir(args[2] + args[3])
+                            ns.add_dir(args[2] + '/' + args[3])
 
                         # cd to arg[2] after done.
 

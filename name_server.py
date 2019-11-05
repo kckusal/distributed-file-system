@@ -1,15 +1,75 @@
 '''
     Name-server maintains a JSON object structure of our DFS.
-        dfs = {
+        {
             "root": {
                 "dir1": {
                     "myfile.pdf": {
-                        "__locations": [server1_ip, server2_ip]
+                        "created": "date_time of creating",
+                        "modified": "date_time of last modified",
+                        "size": 258000,
+                        "blocks": [
+                            { uuid: "dfjkfsxkjlsdjf239", "__locations": [server1_ip, server2_ip] },
+                            { uuid: "dfjkfsxkjlsdjf239", "__locations": [server1_ip, server2_ip] }
+                        ]
                     }
                 },
                 "dir2": {}
             }
         }
+
+    Use nested lookup: https://pypi.org/project/nested-lookup/
+    Argument parser
+
+    Assumptions:
+      - Storage in storage servers is unlimited. Try put in nameservers one by one, if fail in all, then fail putting.
+
+    Name-server will only act as a structure and a pointer, nothing more.
+    
+      - Client wants to get a file: contact nameserver, the ns will return the blocks mapping where they're located.
+      Client will fetch those blocks and build the file on its own.
+
+      - client wants to put a file: contacts nameserver asking list of alive storage servers and possibly the
+    replication factor; client will directly put the files in those storage servers with replication too.
+      
+      - client wants to remove a file: Contacts nameserver asking for a list of storage servers with blocks; client
+      deletes those blocks in all storage servers.
+
+      - client wants to delete a dir: contacts nameserver; nameserver returns list of storage servers with all blocks FOR ALL FILES inside of it.
+      client deletes those blocks all.
+
+      - client wants to rename file/dir: contacts nameserver; nameserver simply renames in appropriate position in the structure
+
+
+    Nameserver can interact with the storage servers in following ways:
+      - ping periodically to see if they're alive.
+      - ask the remaining storage capacity.
+      - always return a json to client: { 'status': '1', data: { ..data here } }    # status 0 if some error and data contains error message, else data contains JSON.
+
+    Client:
+      - give commands
+      - make PUT, GET, REMOVE requests to storage server, .
+      - create empty file means just initialize with 0 blocks.
+      - info query retrieves all blocks and sums up sizes for file_size.
+      - return { 'status':1, data: { ..data } } to others on request
+
+    Nameserver:
+      - indexing of servers = dict({
+          "192.168.0.0": { isAlive: True, capacity: 30000 },
+          "192.168.0.1": { isAlive: False, capacity: 30000 },
+          "192.168.0.2": { isAlive: True, capacity: 30000 }
+      })    # save in storage_servers.txt
+      - dfs structure with block --> server mapping     # save in dfs_structure.txt for convenience
+      - just dump these files using pickle
+
+      - check aliveness of a server every 10s, if one is down, copy its content to some other server.
+      - return { 'status':1, action:'replicate', data: { ..data } } to client on request
+
+    
+    Storage servers:
+      - contain folder with our dfs name in root directory:    root/ken
+      - inside ken, just stores bin. blocks with name:   some_uuid.bin
+      - return { 'status':1, data: { ..data } } to client on request
+
 '''
 
 import json
