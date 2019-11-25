@@ -8,7 +8,6 @@ Kusal will write here.
 Kusal will write here
 
 # Architectural Diagrams
-Nikola will write here
 ![diagram](https://i.imgur.com/chKu2DG.jpg)
 ## Nameserver
 Responds to client requests, continuously checks for alive storage servers by trying to connect in certain intervals
