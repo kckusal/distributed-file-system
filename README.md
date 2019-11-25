@@ -9,6 +9,13 @@ Kusal will write here
 
 # Architectural Diagrams
 Nikola will write here
+![diagram](https://i.imgur.com/chKu2DG.jpg)
+## Nameserver
+Responds to client requests, continuously checks for alive storage servers by trying to connect in certain intervals
+## Client
+Makes requests to Nameserver to get informations about Storage servers, then performs those operations in interaction with Storage server
+## Storage Server
+Responds to client request and gives feedback to Nameserver about changes
 
 # Communication Protocols used - RPyC
 Used for symmetrical remote procedure calls and distributed computing.
