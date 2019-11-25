@@ -2,14 +2,25 @@
 This is a simple python-based implementation of a distributed file system.
 
 # How to launch the system?
-Kusal will write here.
+Make sure you first have the following requirements met:
+
+**For client**: Python3 with these libraries—rpyc, prompt-toolkit, prompt, tqdm (Install simply with *pip3 install \** where * refers to one of these library)
+
+**For NameServer & StorageServers**: Python3 with rpyc
+
+Then, run at least 2 storage servers if your replication factor is 2. It is set to 2 in our implementation and assumed that will always be >=2.
+
+Run nameserver.py (*python3 nameserver.py*)
+
+Finally, run the client.py script (*python3 client.py*).
+
 
 # How to use it?
 Kusal will write here
 
 # Architectural Diagrams
 **High-level Overview**:
-![image](https://user-images.githubusercontent.com/26818010/69574658-a4b9d100-0fc0-11ea-8135-6bd87533294d.png)
+![diagram](https://i.imgur.com/chKu2DG.jpg)
 
 **Interaction/Use-case Scenario: Upload a file**:
 ![image](https://user-images.githubusercontent.com/26818010/69574542-586e9100-0fc0-11ea-95f4-6b26e008272f.png)
@@ -27,4 +38,4 @@ Interacts with DFS system. Makes requests to Nameserver internally to get inform
 Responds to client request and gives feedback as well as follow command to/from Nameserver about replication and syncing.
 
 # Communication Protocols used - RPyC
-Used for symmetrical remote procedure calls and distributed computing.
+RPyC is a popular Python library used for remote procedure calls. All communications between Naming Server, Storage Servers, and the Client in our application is done using RPyC as it is simple to use and allows us to call remote methods and attributes in a local context.
