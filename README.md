@@ -11,4 +11,4 @@ Kusal will write here
 Nikola will write here
 
 # Communication Protocols used - RPyC
-Ezio will write here.
+Used for symmetrical remote procedure calls and distributed computing.
