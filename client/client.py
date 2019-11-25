@@ -1,4 +1,4 @@
-'''
+''' NOTE: This was preliminary, so updates were made to this interface.
 ------------CLIENT Interface-----------
 
 ken connect         Connect to the nameserver, loads repl with current = root.
@@ -30,8 +30,7 @@ if sys.version_info < (3, 5):
   print('> Please use Python version 3.5 or above!')
   sys.exit(0)
 
-
-from math import isinf
+import math
 import time
 import random
 from uuid import uuid4
@@ -128,7 +127,7 @@ def parse_size_from_bytes(num):
   # this function will convert bytes to MB.... GB... etc
   for x in ['bytes', 'KB', 'MB', 'GB', 'TB']:
     if num < 1024.0:
-      return "%3.1f %s" % (num, x)
+      return "%3.2f %s" % (num, x)
     num /= 1024.0
 
 def prettyDictionary(t,s):
@@ -167,7 +166,7 @@ class MyPrompt(Cmd):
         required = min_required
       else:
         required = "{} ".format(min_required)
-        if isinf(max_required):
+        if math.isinf(max_required):
           required += "or more"
         else:
           required += "to {}".format(max_required)
@@ -245,7 +244,9 @@ class MyPrompt(Cmd):
         result = json.loads(CONN.root.initialize(forced=True))
       else:
         result = json.loads(CONN.root.initialize())
-      
+        
+    if result["status"]==1:
+      result["message"] += "\n Available size: " + parse_size_from_bytes(1024*1024*1024*len(CONN.root.get_alive_servers()))
     self.print_response(result)
 
   def help_init(self):
@@ -409,8 +410,24 @@ class MyPrompt(Cmd):
     if res["status"]==1:
       is_file = True if "blocks" in res["data"].keys() else False
       if is_file:
-        size_bytes = len(res["data"]["blocks"]) * res["nsconfig"]["block_size"] if len(res["data"]["blocks"])>0 else 0        
-        res["message"] = "This is a file. \nLocation: {}\nSize: {}".format(arg, parse_size_from_bytes(size_bytes))
+        blocks = res["data"]["blocks"]
+        size_bytes = (len(blocks)-1) * int(res["nsconfig"]["block_size"]) if len(res["data"]["blocks"])>0 else 0
+        target_ss = CONN.root.get_ss_having_this_block(blocks[-1])
+        last_byte_size = None
+        target_remote_path = self.parse_path(arg).rsplit("/", 1)[0]
+        for ss in target_ss:
+          try:
+            block_path = os.path.join(target_remote_path, blocks[-1])
+            data = get_from_ss(ss, block_path)
+            last_byte_size = sys.getsizeof(data)
+            break
+          except:
+            pass
+        
+        if last_byte_size is None:
+          last_byte_size = int(res["nsconfig"]["block_size"])
+        
+        res["message"] = "This is a file. \nLocation: {}\nSize: {}".format(arg, parse_size_from_bytes(size_bytes + last_byte_size))
       else:
         keys = res["data"].keys()
         file_count = 0
@@ -421,7 +438,7 @@ class MyPrompt(Cmd):
           else:
             dir_count += 1
         #files_inside = CONN.root.files_in_directory(arg.split("/")[-1], res["data"])
-        res["message"] = "This is a directory.\n<green>Direct Subdirectories count</green>: {} \n<green>Direct files count</green>: {}\n<green>Total files inside</green>: {}".format(dir_count, file_count, None)
+        #res["message"] = "This is a directory.\n<green>Direct Subdirectories count</green>: {} \n<green>Direct files count</green>: {}\n<green>Total files inside</green>: {}".format(dir_count, file_count, None)
     self.print_response(res)
 
   def help_info(self):
@@ -496,10 +513,15 @@ class MyPrompt(Cmd):
 
       ss_block_map = []
       total_size = os.path.getsize(local_path)
+      blocks_len = math.ceil(total_size/block_size)
+      print(HTML('File splitted into <green>{}</green> blocks.'.format(blocks_len)))
       done_size = 0
       with open(local_path, 'rb') as lf:
         buff = lf.read(block_size)
+        i = 0
         while buff:
+          i += 1
+          print('Uploading block', i)
           block_name = str(uuid4())
           target_ss = random.sample(storage_servers, replication_factor) if len(storage_servers)>replication_factor else storage_servers
           
@@ -546,11 +568,13 @@ class MyPrompt(Cmd):
         result["status"]=0
         msg.append('No such target local directory!')
       
+      blocks = []
       if res["status"]==0:
         result["status"]=0
         msg.append('No such resource in remote path!')
-
-      blocks = res["data"]["blocks"]
+      else:
+        blocks = res["data"]["blocks"]
+      
       if not blocks or len(blocks)==0:
         result["status"]=0
         msg.append('No file/empty file in given remote directory.')
@@ -566,20 +590,27 @@ class MyPrompt(Cmd):
       }
       target_out_file = os.path.join(local, out_fname)
       target_remote_path = remote.rsplit("/", 1)[0]
+      print(HTML('<green>{}</green> blocks need to be fetched.'.format(len(blocks))))
       with open(target_out_file, "wb") as lf:
-        for block_id in blocks:
+        i = 0
+        for block_id in tqdm(blocks):
+          i += 1
           target_ss = CONN.root.get_ss_having_this_block(block_id)
           data = None
-          for ss in tqdm(target_ss):
+          problematic_ss = []
+          for ss in target_ss:
             try:
               block_path = os.path.join(target_remote_path, block_id)
               data = get_from_ss(ss, block_path)
-              #print('Gathering block from', ss.split(":")[0])
               lf.write(data)
-            except:
-              print('Error in getting data from {}'.format(ss))
-              data = None
+              #print(HTML('Block <b>{}</b> fetched.'.format(i)))
               break
+            except:
+              data = None
+              problematic_ss.append(ss)
+          
+          if len(problematic_ss)>0 and data is None:
+            print('Problematic storage servers were', problematic_ss)
           
           if not data:
             response["status"]=0
